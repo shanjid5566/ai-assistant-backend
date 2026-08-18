@@ -23,6 +23,13 @@ export class AIRoutes {
             validateRequest(AIValidation.promptSchema),
             this.aiController.generateCode
         );
+
+        // POST /api/v1/ai/plan
+        this.router.post(
+            '/plan',
+            validateRequest(AIValidation.promptSchema),
+            this.aiController.generatePlan
+        );
     }
 }
 

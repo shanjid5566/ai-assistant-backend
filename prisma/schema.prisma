@@ -46,6 +46,8 @@ model Project {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  ipAddress   String? // For tracking guest users
+
   // Relation to the User model
   userId   String?
   user     User?     @relation(fields: [userId], references: [id])
