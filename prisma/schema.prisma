@@ -33,19 +33,35 @@ model User {
   updatedAt       DateTime         @updatedAt
 
   // A user can have multiple projects
-  projects        Project[]
+  projects Project[]
+  messages Message[]
 }
 
 // Project/Workspace Model
 model Project {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
-  isArchived  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relation to the User model
-  userId      String?
-  user        User?     @relation(fields: [userId], references: [id])
+  userId   String?
+  user     User?     @relation(fields: [userId], references: [id])
+  messages Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  prompt    String
+  response  String
+  createdAt DateTime @default(now())
+
+  // Optional relation to User or Project if needed later
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
 }
