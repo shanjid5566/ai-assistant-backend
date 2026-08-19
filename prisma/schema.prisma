@@ -24,8 +24,11 @@ enum ExperienceLevel {
 // User model for saving Onboarding Preferences
 model User {
   id              String           @id @default(cuid())
+  firstName       String?
+  lastName        String?
   email           String           @unique
-  domainFocus     DomainFocus
+  password        String?
+  domainFocus     DomainFocus?
   experienceLevel ExperienceLevel?
   preferredStack  String[]
   architecture    String?

@@ -10,6 +10,7 @@ import { ProjectRoutes } from "./modules/project/project.route.js";
 import UserRoutes from "./modules/user/user.route.js";
 import AIRoutes from "./modules/ai/ai.route.js";
 import MessageRoutes from "./modules/message/message.route.js";
+import AuthRoutes from "./modules/auth/auth.route.js";
 
 class App {
   public app: Application;
@@ -42,6 +43,9 @@ class App {
 
     const userRoutes = new UserRoutes();
     this.app.use("/api/v1/users", userRoutes.router);
+
+    const authRoutes = new AuthRoutes();
+    this.app.use("/api/v1/auth", authRoutes.router);
 
     const aiRoutes = new AIRoutes();
     this.app.use("/api/v1/ai", aiRoutes.router);
