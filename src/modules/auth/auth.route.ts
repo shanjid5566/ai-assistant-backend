@@ -31,6 +31,21 @@ export class AuthRoutes {
             // no validation schema for mock
             this.authController.githubLogin
         );
+
+        this.router.post(
+            '/send-otp',
+            this.authController.sendOtp
+        );
+
+        this.router.post(
+            '/verify-otp',
+            this.authController.verifyOtp
+        );
+
+        this.router.post(
+            '/reset-password',
+            this.authController.resetPassword
+        );
     }
 }
 

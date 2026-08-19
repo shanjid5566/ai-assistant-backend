@@ -33,4 +33,12 @@ export class AuthService {
 
         return user;
     }
+
+    public async resetPassword(email: string, newPassword: string): Promise<User> {
+        const user = await prisma.user.update({
+            where: { email },
+            data: { password: newPassword },
+        });
+        return user;
+    }
 }
