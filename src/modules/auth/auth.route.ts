@@ -25,6 +25,12 @@ export class AuthRoutes {
             validateRequest(AuthValidation.loginSchema),
             this.authController.login
         );
+
+        this.router.post(
+            '/github',
+            // no validation schema for mock
+            this.authController.githubLogin
+        );
     }
 }
 

@@ -28,6 +28,25 @@ export class AuthController {
             data: result,
         });
     });
+
+    // Mock GitHub integration
+    public githubLogin = catchAsync(async (req: Request, res: Response) => {
+        // In reality, you'd exchange code for token, fetch GH user data & repos, auto-detect stack
+        const mockAutoDetectedData = {
+            id: 'mock-github-id',
+            email: 'githubuser@example.com',
+            firstName: 'GitHub',
+            lastName: 'User',
+            domainFocus: 'WEB',
+            preferredStack: ['react', 'typescript', 'node'], // Auto-detected
+        };
+
+        res.status(200).json({
+            success: true,
+            message: 'GitHub connected & stack auto-detected successfully',
+            data: mockAutoDetectedData,
+        });
+    });
 }
 
 export default AuthController;

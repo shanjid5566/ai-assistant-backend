@@ -29,4 +29,17 @@ export class UserService {
         
         return result;
     }
+
+    public async getProfile(email: string): Promise<User | null> {
+        return await prisma.user.findUnique({
+            where: { email },
+        });
+    }
+
+    public async updateProfile(email: string, payload: Partial<User>): Promise<User> {
+        return await prisma.user.update({
+            where: { email },
+            data: payload,
+        });
+    }
 }

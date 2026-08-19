@@ -23,6 +23,17 @@ export class UserRoutes {
             validateRequest(UserValidation.onboardingSchema),
             this.userController.saveOnboardingData
         );
+
+        this.router.get(
+            '/me',
+            this.userController.getProfile
+        );
+
+        this.router.patch(
+            '/me',
+            // Can add validation here
+            this.userController.updateProfile
+        );
     }
 }
 
