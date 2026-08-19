@@ -28,17 +28,17 @@ export class AIService {
             }
         }
 
-        // 2. Add all Hugging Face models
-        if (config.ai.hf.models && config.ai.hf.models.length > 0) {
-            for (const model of config.ai.hf.models) {
-                this.fallbackStrategies.push({ provider: 'HUGGINGFACE', model: model.trim() });
-            }
-        }
-
-        // 3. Add all Groq models
+        // 2. Add all Groq models (Secondary)
         if (config.ai.groq.models && config.ai.groq.models.length > 0) {
             for (const model of config.ai.groq.models) {
                 this.fallbackStrategies.push({ provider: 'GROQ', model: model.trim() });
+            }
+        }
+
+        // 3. Add all Hugging Face models (Tertiary fallback)
+        if (config.ai.hf.models && config.ai.hf.models.length > 0) {
+            for (const model of config.ai.hf.models) {
+                this.fallbackStrategies.push({ provider: 'HUGGINGFACE', model: model.trim() });
             }
         }
     }
