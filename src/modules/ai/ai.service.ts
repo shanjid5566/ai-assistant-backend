@@ -3,6 +3,7 @@ import config from '../../config/index.js';
 import { MessageService } from '../message/message.service.js';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { redis } from '../../config/redis.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is not defined. Please add it to your .env file.');
@@ -68,6 +69,36 @@ file content here
 
 You may provide a brief explanation outside the tags, but all actual code must be wrapped in <file> tags.`;
 
+        // Load Conversation History Context (With Redis Caching)
+        let history: {role: string, content: string}[] = [];
+        if (projectId) {
+            const cacheKey = `project:history:${projectId}`;
+            const cachedHistory = await redis.get(cacheKey);
+
+            if (cachedHistory) {
+                console.log(`[Redis] Cache Hit for project history: ${projectId}`);
+                history = JSON.parse(cachedHistory);
+            } else {
+                console.log(`[Redis] Cache Miss. Fetching history from DB for project: ${projectId}`);
+                const previousMessages = await prisma.message.findMany({
+                    where: { projectId },
+                    orderBy: { createdAt: 'desc' }, // Get latest
+                    take: 10 // Last 10 messages for context window
+                });
+                
+                // Reverse so they are in chronological order
+                previousMessages.reverse().forEach((msg) => {
+                    history.push({ role: 'user', content: msg.prompt });
+                    history.push({ role: 'assistant', content: msg.response });
+                });
+
+                // Cache for 1 hour
+                if (history.length > 0) {
+                    await redis.setex(cacheKey, 3600, JSON.stringify(history));
+                }
+            }
+        }
+
         let aiResponse = '';
         let usedStrategy: AIStrategy | null = null;
         let collectedErrors: string[] = [];
@@ -79,7 +110,7 @@ You may provide a brief explanation outside the tags, but all actual code must b
             for (const key of keys) {
                 try {
                     console.log(`[AI Engine] Attempting ${strategy.provider} - Model: ${strategy.model}`);
-                    aiResponse = await this.callProvider(strategy, key.trim(), prompt, systemPrompt);
+                    aiResponse = await this.callProvider(strategy, key.trim(), prompt, systemPrompt, history);
                     if (aiResponse) {
                         usedStrategy = strategy;
                         break; // Break key loop on success
@@ -191,12 +222,18 @@ You may provide a brief explanation outside the tags, but all actual code must b
         }
     }
 
-    private async callProvider(strategy: AIStrategy, apiKey: string, prompt: string, systemMessage?: string): Promise<string> {
+    private async callProvider(strategy: AIStrategy, apiKey: string, prompt: string, systemMessage?: string, history?: {role: string, content: string}[]): Promise<string> {
         let fullContent = '';
         const messages: any[] = [];
         if (systemMessage) {
             messages.push({ role: 'system', content: systemMessage });
         }
+        
+        // Inject conversation history if available
+        if (history && history.length > 0) {
+            messages.push(...history);
+        }
+
         messages.push({ role: 'user', content: prompt });
 
         const maxContinuations = 10;

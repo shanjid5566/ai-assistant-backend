@@ -1,5 +1,6 @@
 import { PrismaClient, type Message } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { redis } from '../../config/redis.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -21,6 +22,12 @@ export class MessageService {
         const result = await prisma.message.create({
             data: payload,
         });
+        
+        // Cache Invalidation
+        if (payload.projectId) {
+            await redis.del(`project:history:${payload.projectId}`);
+        }
+        
         return result;
     }
 
