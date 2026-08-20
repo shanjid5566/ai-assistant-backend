@@ -3,6 +3,7 @@ import { AuthService } from './auth.service.js';
 import catchAsync from '../../shared/catchAsync.js';
 import { sendEmail } from '../../config/email.js';
 import { redis } from '../../config/redis.js';
+import axios from 'axios';
 
 export class AuthController {
     private authService: AuthService;
@@ -31,21 +32,86 @@ export class AuthController {
         });
     });
 
-    // Mock GitHub integration
-    public githubLogin = catchAsync(async (req: Request, res: Response) => {
-        // In reality, you'd exchange code for token and fetch GH user data
-        const mockGithubUser = {
-            id: 'mock-github-id',
-            email: 'githubuser@example.com',
-            firstName: 'GitHub',
-            lastName: 'User',
-        };
+    // ---------------------------------------------
+    // GITHUB OAUTH
+    // ---------------------------------------------
+    public githubRedirect = catchAsync(async (req: Request, res: Response) => {
+        const url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${process.env.GITHUB_CALLBACK_URL}&scope=user:email`;
+        res.redirect(url);
+    });
 
-        res.status(200).json({
-            success: true,
-            message: 'GitHub login successful',
-            data: mockGithubUser,
+    public githubCallback = catchAsync(async (req: Request, res: Response) => {
+        const code = req.query.code as string;
+        if (!code) throw new Error('No code provided');
+
+        // Get Access Token
+        const { data: tokenData } = await axios.post('https://github.com/login/oauth/access_token', {
+            client_id: process.env.GITHUB_CLIENT_ID,
+            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            code,
+            redirect_uri: process.env.GITHUB_CALLBACK_URL,
+        }, { headers: { Accept: 'application/json' } });
+
+        if (tokenData.error) throw new Error(tokenData.error_description || 'Failed to get GitHub token');
+
+        // Get User Profile
+        const { data: profile } = await axios.get('https://api.github.com/user', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
         });
+
+        // Get Emails (Primary)
+        const { data: emails } = await axios.get('https://api.github.com/user/emails', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        const primaryEmail = emails.find((e: any) => e.primary)?.email || profile.email;
+
+        if (!primaryEmail) throw new Error('No email found from GitHub');
+
+        // Create or get user
+        const user = await this.authService.oAuthLogin({
+            email: primaryEmail,
+            firstName: profile.name || profile.login,
+        });
+
+        // Redirect to frontend or send token
+        res.status(200).json({ success: true, message: 'GitHub login successful', data: user });
+    });
+
+    // ---------------------------------------------
+    // GOOGLE OAUTH
+    // ---------------------------------------------
+    public googleRedirect = catchAsync(async (req: Request, res: Response) => {
+        const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.GOOGLE_CALLBACK_URL}&response_type=code&scope=profile email`;
+        res.redirect(url);
+    });
+
+    public googleCallback = catchAsync(async (req: Request, res: Response) => {
+        const code = req.query.code as string;
+        if (!code) throw new Error('No code provided');
+
+        // Get Access Token
+        const { data: tokenData } = await axios.post('https://oauth2.googleapis.com/token', {
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            code,
+            redirect_uri: process.env.GOOGLE_CALLBACK_URL,
+            grant_type: 'authorization_code',
+        });
+
+        // Get User Profile
+        const { data: profile } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+
+        // Create or get user
+        const user = await this.authService.oAuthLogin({
+            email: profile.email,
+            firstName: profile.given_name,
+            lastName: profile.family_name,
+        });
+
+        // Redirect to frontend or send token
+        res.status(200).json({ success: true, message: 'Google login successful', data: user });
     });
 
     public sendOtp = catchAsync(async (req: Request, res: Response) => {

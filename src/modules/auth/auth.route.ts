@@ -26,11 +26,11 @@ export class AuthRoutes {
             this.authController.login
         );
 
-        this.router.post(
-            '/github',
-            // no validation schema for mock
-            this.authController.githubLogin
-        );
+        this.router.get('/github', this.authController.githubRedirect);
+        this.router.get('/github/callback', this.authController.githubCallback);
+
+        this.router.get('/google', this.authController.googleRedirect);
+        this.router.get('/google/callback', this.authController.googleCallback);
 
         this.router.post(
             '/send-otp',

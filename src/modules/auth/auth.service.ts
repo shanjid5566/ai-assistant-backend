@@ -41,4 +41,24 @@ export class AuthService {
         });
         return user;
     }
+
+    public async oAuthLogin(payload: { email: string; firstName: string; lastName?: string }): Promise<User> {
+        let user = await prisma.user.findUnique({
+            where: { email: payload.email },
+        });
+
+        if (!user) {
+            // Create user if they don't exist
+            user = await prisma.user.create({
+                data: {
+                    email: payload.email,
+                    firstName: payload.firstName,
+                    lastName: payload.lastName || '',
+                    password: '', // OAuth users don't have a direct password initially
+                },
+            });
+        }
+
+        return user;
+    }
 }

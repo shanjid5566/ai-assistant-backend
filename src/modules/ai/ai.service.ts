@@ -295,13 +295,17 @@ You may provide a brief explanation outside the tags, but all actual code must b
             const chunk = choice.message.content || '';
             fullContent += chunk;
 
-            // Check if generation stopped due to token limit
-            if (choice.finish_reason === 'length' && continuations < maxContinuations) {
-                console.log(`[AI Engine] Token limit reached for ${strategy.model}. Auto-continuing (Attempt ${continuations + 1}/${maxContinuations})...`);
+            // Check if generation stopped due to token limit OR if a code block was left open
+            const isLengthReason = choice.finish_reason === 'length';
+            const backtickMatches = fullContent.match(/```/g);
+            const isOpenCodeBlock = backtickMatches && backtickMatches.length % 2 !== 0;
+
+            if ((isLengthReason || isOpenCodeBlock) && continuations < maxContinuations) {
+                console.log(`[AI Engine] Token limit or cutoff detected for ${strategy.model}. Auto-continuing (Attempt ${continuations + 1}/${maxContinuations})...`);
                 // Add the partial response to history
                 messages.push({ role: 'assistant', content: chunk });
                 // Ask it to continue exactly from where it left off
-                messages.push({ role: 'user', content: 'You hit the output limit. Please continue exactly from where you left off in the previous response. Do not repeat anything and do not add any introductory text, just continue the code.' });
+                messages.push({ role: 'user', content: 'You hit the output limit or cut off mid-generation. Please continue exactly from where you left off in the previous response. Do not repeat anything and do not add any introductory text, just continue generating the code.' });
                 continuations++;
             } else {
                 break; // Finished normally or hit max continuations
