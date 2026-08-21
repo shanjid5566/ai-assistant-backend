@@ -30,7 +30,7 @@ class App {
       origin: ['http://localhost:5173', 'http://localhost:3000'],
       credentials: true
     }));
-    this.app.use(helmet());
+    this.app.use((helmet as any)());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
   }
