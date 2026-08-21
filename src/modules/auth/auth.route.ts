@@ -46,6 +46,11 @@ export class AuthRoutes {
             '/reset-password',
             this.authController.resetPassword
         );
+
+        this.router.post(
+            '/change-password',
+            this.authController.changePassword
+        );
     }
 }
 

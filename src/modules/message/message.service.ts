@@ -35,9 +35,10 @@ export class MessageService {
      * Fetch all messages (optional: filter by project or user)
      * @returns Array of messages
      */
-    public async getAllMessages(): Promise<Message[]> {
+    public async getAllMessages(projectId?: string): Promise<Message[]> {
         const result = await prisma.message.findMany({
-            orderBy: { createdAt: 'desc' },
+            where: projectId ? { projectId } : undefined,
+            orderBy: { createdAt: 'asc' },
         });
         return result;
     }

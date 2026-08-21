@@ -20,5 +20,8 @@ export class ProjectRoutes {
         
         // e.g., GET /api/v1/projects/
         this.router.get('/', this.projectController.getAllProjects);
+        
+        // e.g., DELETE /api/v1/projects/:id
+        this.router.delete('/:id', this.projectController.deleteProject);
     }
 }

@@ -189,6 +189,20 @@ export class AuthController {
             message: 'Password reset successfully',
         });
     });
+
+    public changePassword = catchAsync(async (req: Request, res: Response) => {
+        const { email, currentPassword, newPassword } = req.body;
+        if (!email || !currentPassword || !newPassword) {
+            throw new Error('Email, current password, and new password are required');
+        }
+
+        await this.authService.changePassword(email, currentPassword, newPassword);
+
+        res.status(200).json({
+            success: true,
+            message: 'Password changed successfully',
+        });
+    });
 }
 
 export default AuthController;

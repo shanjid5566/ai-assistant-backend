@@ -26,7 +26,8 @@ export class MessageController {
      * Handles fetching all messages
      */
     public getAllMessages = catchAsync(async (req: Request, res: Response) => {
-        const result = await this.messageService.getAllMessages();
+        const projectId = req.query.projectId as string | undefined;
+        const result = await this.messageService.getAllMessages(projectId);
 
         res.status(200).json({
             success: true,

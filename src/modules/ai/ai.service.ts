@@ -48,15 +48,16 @@ export class AIService {
      * Process prompt, get real AI response, and save to database
      */
     public async generateResponse(prompt: string, projectId?: string, userId?: string): Promise<any> {
+        // TODO: Re-enable guest prompt limit before production
         // Enforce 5 prompt limit for non-logged-in users
-        if (!userId && projectId) {
-            const messageCount = await prisma.message.count({
-                where: { projectId }
-            });
-            if (messageCount >= 5) {
-                throw new Error('Guest users can only send 5 prompts per plan. Please login to continue.');
-            }
-        }
+        // if (!userId && projectId) {
+        //     const messageCount = await prisma.message.count({
+        //         where: { projectId }
+        //     });
+        //     if (messageCount >= 5) {
+        //         throw new Error('Guest users can only send 5 prompts per plan. Please login to continue.');
+        //     }
+        // }
 
         const systemPrompt = `You are an expert full-stack developer.
 Unless the user explicitly specifies a different technology stack or folder structure, you MUST default to the MERN stack (MongoDB, Express, React, Node.js) with a standard production-ready folder structure (e.g., 'backend/src/...', 'frontend/src/...').
@@ -73,7 +74,12 @@ You may provide a brief explanation outside the tags, but all actual code must b
         let history: {role: string, content: string}[] = [];
         if (projectId) {
             const cacheKey = `project:history:${projectId}`;
-            const cachedHistory = await redis.get(cacheKey);
+            let cachedHistory = null;
+            try {
+                cachedHistory = await redis.get(cacheKey);
+            } catch (err) {
+                console.warn(`[Redis] Failed to get cache for project history: ${err}`);
+            }
 
             if (cachedHistory) {
                 console.log(`[Redis] Cache Hit for project history: ${projectId}`);
@@ -94,7 +100,11 @@ You may provide a brief explanation outside the tags, but all actual code must b
 
                 // Cache for 1 hour
                 if (history.length > 0) {
-                    await redis.setex(cacheKey, 3600, JSON.stringify(history));
+                    try {
+                        await redis.setex(cacheKey, 3600, JSON.stringify(history));
+                    } catch (err) {
+                        console.warn(`[Redis] Failed to set cache for project history: ${err}`);
+                    }
                 }
             }
         }
@@ -159,7 +169,23 @@ You may provide a brief explanation outside the tags, but all actual code must b
             }
         }
 
-        const systemPrompt = "You are an expert AI architect. The user will give you a request. Do NOT write any code yet. Instead, generate a detailed, step-by-step technical plan for how to achieve this request. Break it down into clear, numbered logical steps.";
+        const systemPrompt = `You are an expert software architect. The user will describe a project. Your task is to break it into exactly 5 to 7 high-level development phases.
+
+STRICT RULES:
+- Output ONLY the numbered list. No introduction, no conclusion, no extra text.
+- Each phase must start with its number followed by a period and a space: "1. ", "2. ", etc.
+- Keep each phase title short (under 10 words).
+- Add a brief description on the next line (1-2 sentences max), indented with 2 spaces.
+- Do NOT create more than 7 phases. Merge small tasks into larger phases.
+- Do NOT use sub-numbering (1.1, 1.2, etc.) inside phases.
+- Do NOT write any code.
+
+Example format:
+1. Project Setup & Configuration
+  Initialize both backend and frontend folders with all required dependencies and environment files.
+
+2. Database Schema Design
+  Define all data models, relationships, and run initial migrations.`;
         
         let aiResponse = '';
         let usedStrategy: AIStrategy | null = null;

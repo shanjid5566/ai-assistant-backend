@@ -26,7 +26,10 @@ class App {
    * Configure global middlewares
    */
   private initializeMiddlewares() {
-    this.app.use(cors());
+    this.app.use(cors({
+      origin: ['http://localhost:5173', 'http://localhost:3000'],
+      credentials: true
+    }));
     this.app.use(helmet());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));

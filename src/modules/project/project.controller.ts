@@ -30,10 +30,28 @@ export class ProjectController {
      */
     public getAllProjects = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const result = await this.projectService.getAllProjects();
+            const email = req.query.email as string;
+            const result = await this.projectService.getAllProjects(email);
             res.status(200).json({
                 success: true,
                 message: 'Projects retrieved successfully',
+                data: result,
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Handles project deletion
+     */
+    public deleteProject = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id } = req.params;
+            const result = await this.projectService.deleteProject(id);
+            res.status(200).json({
+                success: true,
+                message: 'Project deleted successfully',
                 data: result,
             });
         } catch (error) {
